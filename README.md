@@ -93,12 +93,12 @@ func main() {
     }
 
     // Initialize plugin
-    if err := agentic-rag.InitializeAgenticRAG(g, config); err != nil {
+    if err := genkit_agentic_rag.InitializeAgenticRAG(g, config); err != nil {
         log.Fatalf("Failed to initialize agentic RAG: %v", err)
     }
 
     // Create processor
-    processor := agentic-rag.NewAgenticRAGProcessor(config)
+    processor := genkit_agentic_rag.NewAgenticRAGProcessor(config)
 
     // Advanced query with comprehensive analysis
     request := plugin.AgenticRAGRequest{
@@ -157,7 +157,9 @@ func main() {
 }
 
 func countVerifiedClaims(claims []plugin.Claim) int {
-f claim.Status == "verified" {
+    count := 0
+    for _, claim := range claims {
+        if claim.Status == "verified" {
             count++
         }
     }

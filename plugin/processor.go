@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/ZanzyTHEbar/errbuilder-go"
 	"github.com/firebase/genkit/go/ai"
 	"github.com/firebase/genkit/go/genkit"
 )
@@ -65,7 +66,10 @@ func DefaultConfig() *AgenticRAGConfig {
 // initializePrompts sets up the prompt system with custom helpers
 func (p *AgenticRAGProcessor) initializePrompts(ctx context.Context) error {
 	if p.config.Genkit == nil {
-		return fmt.Errorf("GenKit instance not provided in config")
+		return errbuilder.New().
+			WithMsg("GenKit instance not provided in config").
+			WithLabel("initialization").
+			WithCode(errbuilder.CodeInternal)
 	}
 
 	g := p.config.Genkit
@@ -128,7 +132,13 @@ func (p *AgenticRAGProcessor) Process(ctx context.Context, request AgenticRAGReq
 	// Step 1: Load documents into context window
 	documents, err := p.loadDocuments(ctx, request.Documents)
 	if err != nil {
-		return nil, fmt.Errorf("failed to load documents: %w", err)
+		return nil, errbuilder.New().
+			WithMsg("failed to load documents").
+			WithCause(err).
+			WithLabel("processing").
+			WithDetails(errbuilder.NewErrDetails(errbuilder.ErrorMap{
+				"step": fmt.Errorf("load_documents"),
+			}))
 	}
 
 	// Step 2: Chunk documents into initial chunks (respecting sentence boundaries)
@@ -136,7 +146,13 @@ func (p *AgenticRAGProcessor) Process(ctx context.Context, request AgenticRAGReq
 	for _, doc := range documents {
 		chunks, err := p.chunkDocument(ctx, doc, request.Options.MaxChunks)
 		if err != nil {
-			return nil, fmt.Errorf("failed to chunk document %s: %w", doc.ID, err)
+			return nil, errbuilder.New().
+				WithMsg(fmt.Sprintf("failed to chunk document %s", doc.ID)).
+				WithCause(err).
+				WithLabel("processing").
+				WithDetails(errbuilder.NewErrDetails(errbuilder.ErrorMap{
+					"step": fmt.Errorf("chunk_document"),
+				}))
 		}
 		allChunks = append(allChunks, chunks...)
 	}
@@ -144,19 +160,37 @@ func (p *AgenticRAGProcessor) Process(ctx context.Context, request AgenticRAGReq
 	// Step 3: Prompt model to identify relevant chunks
 	relevantChunks, err := p.identifyRelevantChunks(ctx, request.Query, allChunks)
 	if err != nil {
-		return nil, fmt.Errorf("failed to identify relevant chunks: %w", err)
+		return nil, errbuilder.New().
+			WithMsg(fmt.Sprintf("failed to identify relevant chunks (total: %d)", len(allChunks))).
+			WithCause(err).
+			WithLabel("processing").
+			WithDetails(errbuilder.NewErrDetails(errbuilder.ErrorMap{
+				"step": fmt.Errorf("identify_chunks"),
+			}))
 	}
 
 	// Step 4 & 5: Recursively drill down into selected chunks
 	finalChunks, recursiveLevels, err := p.recursivelyRefineChunks(ctx, request.Query, relevantChunks, request.Options.RecursiveDepth)
 	if err != nil {
-		return nil, fmt.Errorf("failed to recursively refine chunks: %w", err)
+		return nil, errbuilder.New().
+			WithMsg(fmt.Sprintf("failed to recursively refine chunks (max depth: %d)", request.Options.RecursiveDepth)).
+			WithCause(err).
+			WithLabel("processing").
+			WithDetails(errbuilder.NewErrDetails(errbuilder.ErrorMap{
+				"step": fmt.Errorf("recursive_refinement"),
+			}))
 	}
 
 	// Step 6: Generate response based on retrieved information
 	answer, tokenCount, err := p.generateResponse(ctx, request.Query, finalChunks, request.Options)
 	if err != nil {
-		return nil, fmt.Errorf("failed to generate response: %w", err)
+		return nil, errbuilder.New().
+			WithMsg(fmt.Sprintf("failed to generate response from %d chunks", len(finalChunks))).
+			WithCause(err).
+			WithLabel("processing").
+			WithDetails(errbuilder.NewErrDetails(errbuilder.ErrorMap{
+				"step": fmt.Errorf("generate_response"),
+			}))
 	}
 
 	// Step 7: Build knowledge graph if enabled
@@ -164,7 +198,13 @@ func (p *AgenticRAGProcessor) Process(ctx context.Context, request AgenticRAGReq
 	if request.Options.EnableKnowledgeGraph && p.config.KnowledgeGraph.Enabled {
 		knowledgeGraph, err = p.buildKnowledgeGraph(ctx, finalChunks)
 		if err != nil {
-			return nil, fmt.Errorf("failed to build knowledge graph: %w", err)
+			return nil, errbuilder.New().
+				WithMsg("failed to build knowledge graph").
+				WithCause(err).
+				WithLabel("processing").
+				WithDetails(errbuilder.NewErrDetails(errbuilder.ErrorMap{
+					"step": fmt.Errorf("build_knowledge_graph"),
+				}))
 		}
 	}
 
@@ -173,7 +213,13 @@ func (p *AgenticRAGProcessor) Process(ctx context.Context, request AgenticRAGReq
 	if request.Options.EnableFactVerification {
 		factVerification, err = p.verifyFacts(ctx, answer, finalChunks)
 		if err != nil {
-			return nil, fmt.Errorf("failed to verify facts: %w", err)
+			return nil, errbuilder.New().
+				WithMsg("failed to verify facts").
+				WithCause(err).
+				WithLabel("processing").
+				WithDetails(errbuilder.NewErrDetails(errbuilder.ErrorMap{
+					"step": fmt.Errorf("verify_facts"),
+				}))
 		}
 	}
 
