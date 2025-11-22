@@ -342,7 +342,7 @@ func TestParseConfidence(t *testing.T) {
 		{
 			name:     "valid decimal",
 			input:    "0.75",
-			expected: 0.0075, // Note: parseConfidence divides by 100
+			expected: 0.75,
 		},
 		{
 			name:     "invalid input",

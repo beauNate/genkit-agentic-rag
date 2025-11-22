@@ -135,10 +135,7 @@ func (p *AgenticRAGProcessor) Process(ctx context.Context, request AgenticRAGReq
 		return nil, errbuilder.New().
 			WithMsg("failed to load documents").
 			WithCause(err).
-			WithLabel("processing").
-			WithDetails(errbuilder.NewErrDetails(errbuilder.ErrorMap{
-				"step": fmt.Errorf("load_documents"),
-			}))
+			WithLabel("processing")
 	}
 
 	// Step 2: Chunk documents into initial chunks (respecting sentence boundaries)
@@ -149,10 +146,7 @@ func (p *AgenticRAGProcessor) Process(ctx context.Context, request AgenticRAGReq
 			return nil, errbuilder.New().
 				WithMsg(fmt.Sprintf("failed to chunk document %s", doc.ID)).
 				WithCause(err).
-				WithLabel("processing").
-				WithDetails(errbuilder.NewErrDetails(errbuilder.ErrorMap{
-					"step": fmt.Errorf("chunk_document"),
-				}))
+				WithLabel("processing")
 		}
 		allChunks = append(allChunks, chunks...)
 	}
@@ -163,10 +157,7 @@ func (p *AgenticRAGProcessor) Process(ctx context.Context, request AgenticRAGReq
 		return nil, errbuilder.New().
 			WithMsg(fmt.Sprintf("failed to identify relevant chunks (total: %d)", len(allChunks))).
 			WithCause(err).
-			WithLabel("processing").
-			WithDetails(errbuilder.NewErrDetails(errbuilder.ErrorMap{
-				"step": fmt.Errorf("identify_chunks"),
-			}))
+			WithLabel("processing")
 	}
 
 	// Step 4 & 5: Recursively drill down into selected chunks
@@ -175,10 +166,7 @@ func (p *AgenticRAGProcessor) Process(ctx context.Context, request AgenticRAGReq
 		return nil, errbuilder.New().
 			WithMsg(fmt.Sprintf("failed to recursively refine chunks (max depth: %d)", request.Options.RecursiveDepth)).
 			WithCause(err).
-			WithLabel("processing").
-			WithDetails(errbuilder.NewErrDetails(errbuilder.ErrorMap{
-				"step": fmt.Errorf("recursive_refinement"),
-			}))
+			WithLabel("processing")
 	}
 
 	// Step 6: Generate response based on retrieved information
@@ -187,10 +175,7 @@ func (p *AgenticRAGProcessor) Process(ctx context.Context, request AgenticRAGReq
 		return nil, errbuilder.New().
 			WithMsg(fmt.Sprintf("failed to generate response from %d chunks", len(finalChunks))).
 			WithCause(err).
-			WithLabel("processing").
-			WithDetails(errbuilder.NewErrDetails(errbuilder.ErrorMap{
-				"step": fmt.Errorf("generate_response"),
-			}))
+			WithLabel("processing")
 	}
 
 	// Step 7: Build knowledge graph if enabled
@@ -201,10 +186,7 @@ func (p *AgenticRAGProcessor) Process(ctx context.Context, request AgenticRAGReq
 			return nil, errbuilder.New().
 				WithMsg("failed to build knowledge graph").
 				WithCause(err).
-				WithLabel("processing").
-				WithDetails(errbuilder.NewErrDetails(errbuilder.ErrorMap{
-					"step": fmt.Errorf("build_knowledge_graph"),
-				}))
+				WithLabel("processing")
 		}
 	}
 
@@ -216,10 +198,7 @@ func (p *AgenticRAGProcessor) Process(ctx context.Context, request AgenticRAGReq
 			return nil, errbuilder.New().
 				WithMsg("failed to verify facts").
 				WithCause(err).
-				WithLabel("processing").
-				WithDetails(errbuilder.NewErrDetails(errbuilder.ErrorMap{
-					"step": fmt.Errorf("verify_facts"),
-				}))
+				WithLabel("processing")
 		}
 	}
 
@@ -1039,12 +1018,22 @@ func (p *AgenticRAGProcessor) parseKnowledgeGraphFromText(responseText string) (
 
 // parseConfidence safely parses a confidence value from string
 func parseConfidence(confidenceStr string) float64 {
-	confidenceStr = strings.TrimSuffix(confidenceStr, "%")
+	// Check if it's a percentage (ends with %)
+	if strings.HasSuffix(confidenceStr, "%") {
+		confidenceStr = strings.TrimSuffix(confidenceStr, "%")
+		confidence, err := strconv.ParseFloat(confidenceStr, 64)
+		if err != nil {
+			return 0.0
+		}
+		return confidence / 100.0
+	}
+
+	// Otherwise treat as decimal value (0.0-1.0)
 	confidence, err := strconv.ParseFloat(confidenceStr, 64)
 	if err != nil {
 		return 0.0
 	}
-	return confidence / 100.0
+	return confidence
 }
 
 // verifyFacts performs fact verification on the generated response using LLM
