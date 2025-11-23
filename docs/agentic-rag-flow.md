@@ -5,43 +5,38 @@ OpenAI's Agentic RAG Flow is a framework that combines retrieval-augmented gener
 ## Key Components
 
 1. **Load the Entire Document** into the context window.
-   1. Logic to determine the selected models context window
+   1. Logic to determine the selected model's context window
    2. Appropriately and intelligently manage context window using advanced prompting techniques
-2. **Chunk the Document** into 20 chunks that respect sentence boundaries.
-   1. Late Chunking Strategy
-   2. Genkit Embedding API
-   3. Turso Driver for storing Vectors & Semantic information & Metadata
+2. **Chunk the Document** into manageable chunks that respect sentence boundaries.
+   1. Sentence-aware chunking strategy
+   2. Configurable chunk sizes
 3. **Prompt the model** for which chunks might contain relevant information.
 4. **Drill down** into the selected relevant chunks.
 5. **Recursively call this function** until we reach paragraph-level content.
 6. **Build Knowledge Graph** based on context
-   1. If memory is enabled
-   2. JSON structure
-   3. Custom prompt instructions
-7. **Build scratch pad**
-   1. If memory is enabled
-   2. markdown documents acting as "memory bank" between calls
-   3. compressed after write, uncompressed before read
-   4. custom prompt instructions
-8. **Verify the answer** for factual accuracy.
-9.  **Generate a response** based on the retrieved information & context.
+   1. Entity extraction
+   2. Relationship mapping
+   3. Confidence scoring
+7. **Verify the answer** for factual accuracy.
+8. **Generate a response** based on the retrieved information & context.
+
+## Implementation Features
 
 - Advanced Prompt Engineering techniques
 - Dynamic Prompt Templating and Chaining
 - Generate Custom Prompts
 - Send Prompt to LLM
-- Concurrent Processing - Goroutines and Channels
-- Custom Agent Module
-- Inter-Agent Messaging - Message Bus / Actor Model
-- Mixture of Agents - Ensemble and Iterative Refinement
-- RAG Workflow Integration - Vector Retrieval and Context Augmentation
+- RAG Workflow Integration - Context Augmentation
 - LLM Final Response Generation
 - Structured Output - JSON Schema Validation
 - Observability and Metrics Logging
-- Self-Optimization and Adaptive Tuning
-- Robust Error Handling and Retry Logic
+- Robust Error Handling with errbuilder-go
 - Return Final Response to Application
 
-Must use Hexagonal Arcitecture
-Must use Functional Options Pattern
-Must use Golang Best Practices
+## Architecture
+
+- Hexagonal Architecture
+- Functional Options Pattern
+- Go Best Practices
+- Table-driven tests for reliability
+
